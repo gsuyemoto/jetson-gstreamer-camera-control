@@ -205,13 +205,15 @@ impl Orchestrator {
             Message::RecordingCommand {
                 command,
                 target_timestamp,
+                role,
             } => {
                 let now = current_timestamp_micros();
                 let micros_until = scheduler.micros_until(target_timestamp, now);
 
                 println!(
-                    "Received recording command: {:?}, executing in {} ms",
+                    "Received recording command: {:?} from {}, executing in {} ms",
                     command,
+                    role,
                     micros_until / 1000
                 );
 

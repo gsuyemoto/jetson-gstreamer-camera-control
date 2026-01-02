@@ -5,7 +5,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::net::UdpSocket;
 
-pub const MULTICAST_ADDR: &str = "239.255.42.99";
+pub const BROADCAST_ADDR: &str = "192.168.50.255";
 pub const DISCOVERY_PORT: u16 = 9942;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +32,7 @@ pub enum Message {
     RecordingCommand {
         command: RecordingCmd,
         target_timestamp: i64, // When to execute (microseconds since UNIX epoch)
+        role: NodeRole,
     },
     /// Status report from a node
     Status {
@@ -45,6 +46,15 @@ pub enum Message {
 pub enum NodeRole {
     Leader,
     Follower,
+}
+
+impl std::fmt::Display for NodeRole {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NodeRole::Leader => write!(f, "Leader"),
+            NodeRole::Follower => write!(f, "Follower"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
@@ -68,9 +78,13 @@ pub struct NetworkManager {
 }
 
 impl NetworkManager {
-    pub async fn new(node_id: String, role: NodeRole, interface_ip: Option<IpAddr>) -> Result<Self> {
-        let socket = Self::create_multicast_socket(interface_ip).await?;
-        
+    pub async fn new(
+        node_id: String,
+        role: NodeRole,
+        interface_ip: Option<IpAddr>,
+    ) -> Result<Self> {
+        let socket = Self::create_broadcast_socket(interface_ip).await?;
+
         Ok(Self {
             socket,
             node_id,
@@ -78,25 +92,13 @@ impl NetworkManager {
         })
     }
 
-    async fn create_multicast_socket(interface_ip: Option<IpAddr>) -> Result<UdpSocket> {
+    async fn create_broadcast_socket(_interface_ip: Option<IpAddr>) -> Result<UdpSocket> {
         let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
         socket.set_reuse_address(true)?;
+        socket.set_broadcast(true)?;
 
         let bind_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), DISCOVERY_PORT);
         socket.bind(&bind_addr.into())?;
-
-        // Join multicast group
-        let multicast_addr: Ipv4Addr = MULTICAST_ADDR.parse()?;
-        let interface_addr = match interface_ip {
-            Some(IpAddr::V4(addr)) => addr,
-            _ => Ipv4Addr::UNSPECIFIED,
-        };
-        socket.join_multicast_v4(&multicast_addr, &interface_addr)?;
-
-        // Set multicast outgoing interface
-        if let Some(IpAddr::V4(addr)) = interface_ip {
-            socket.set_multicast_if_v4(&addr)?;
-        }
 
         socket.set_nonblocking(true)?;
         let tokio_socket: std::net::UdpSocket = socket.into();
@@ -105,11 +107,8 @@ impl NetworkManager {
 
     pub async fn send_message(&self, msg: &Message) -> Result<()> {
         let json = serde_json::to_string(msg)?;
-        let multicast_dest = SocketAddr::new(
-            IpAddr::V4(MULTICAST_ADDR.parse()?),
-            DISCOVERY_PORT,
-        );
-        self.socket.send_to(json.as_bytes(), multicast_dest).await?;
+        let broadcast_dest = SocketAddr::new(IpAddr::V4(BROADCAST_ADDR.parse()?), DISCOVERY_PORT);
+        self.socket.send_to(json.as_bytes(), broadcast_dest).await?;
         Ok(())
     }
 
@@ -150,10 +149,15 @@ impl NetworkManager {
         self.send_message(&msg).await
     }
 
-    pub async fn send_recording_command(&self, command: RecordingCmd, target_timestamp: i64) -> Result<()> {
+    pub async fn send_recording_command(
+        &self,
+        command: RecordingCmd,
+        target_timestamp: i64,
+    ) -> Result<()> {
         let msg = Message::RecordingCommand {
             command,
             target_timestamp,
+            role: self.role,
         };
         self.send_message(&msg).await
     }
@@ -164,6 +168,9 @@ impl NetworkManager {
             state,
             timestamp: current_timestamp_micros(),
         };
+
+        println!("Sending message: {msg:?}");
+
         self.send_message(&msg).await
     }
 
