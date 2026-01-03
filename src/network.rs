@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use socket2::{Domain, Protocol, Socket, Type};
+use tracing::{info, debug};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::net::UdpSocket;
@@ -92,22 +93,48 @@ impl NetworkManager {
         })
     }
 
-    async fn create_broadcast_socket(_interface_ip: Option<IpAddr>) -> Result<UdpSocket> {
+    async fn create_broadcast_socket(interface_ip: Option<IpAddr>) -> Result<UdpSocket> {
         let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
         socket.set_reuse_address(true)?;
         socket.set_broadcast(true)?;
 
-        let bind_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), DISCOVERY_PORT);
+        // Bind to the specific interface if provided, otherwise bind to all interfaces
+        let bind_addr = match interface_ip {
+            Some(IpAddr::V4(ip)) => SocketAddr::new(IpAddr::V4(ip), DISCOVERY_PORT),
+            _ => SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), DISCOVERY_PORT),
+        };
         socket.bind(&bind_addr.into())?;
 
         socket.set_nonblocking(true)?;
         let tokio_socket: std::net::UdpSocket = socket.into();
+        
+        // Set socket options to ensure broadcast works on the specific interface
+        if let Some(IpAddr::V4(ip)) = interface_ip {
+            use std::os::unix::io::AsRawFd;
+            let raw_fd = tokio_socket.as_raw_fd();
+            // IP_MULTICAST_IF (for both broadcast and multicast) - set to our interface
+            unsafe {
+                let addr = libc::in_addr { s_addr: u32::from(ip).to_be() };
+                let res = libc::setsockopt(
+                    raw_fd,
+                    libc::IPPROTO_IP,
+                    libc::IP_MULTICAST_IF,
+                    &addr as *const _ as *const libc::c_void,
+                    std::mem::size_of::<libc::in_addr>() as libc::socklen_t,
+                );
+                if res < 0 {
+                    return Err(anyhow::anyhow!("Failed to set IP_MULTICAST_IF"));
+                }
+            }
+        }
+        
         UdpSocket::from_std(tokio_socket).context("Failed to create tokio UdpSocket")
     }
 
     pub async fn send_message(&self, msg: &Message) -> Result<()> {
         let json = serde_json::to_string(msg)?;
         let broadcast_dest = SocketAddr::new(IpAddr::V4(BROADCAST_ADDR.parse()?), DISCOVERY_PORT);
+        debug!("Sending message to {}: {:?}", broadcast_dest, msg);
         self.socket.send_to(json.as_bytes(), broadcast_dest).await?;
         Ok(())
     }
@@ -169,7 +196,7 @@ impl NetworkManager {
             timestamp: current_timestamp_micros(),
         };
 
-        println!("Sending message: {msg:?}");
+        info!("Sending status message: {:?}", msg);
 
         self.send_message(&msg).await
     }

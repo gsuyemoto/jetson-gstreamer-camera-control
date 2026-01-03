@@ -1,6 +1,7 @@
 use crate::network::{current_timestamp_micros, Message, NetworkManager, NodeRole, NodeState, RecordingCmd};
 use crate::sync::{SyncScheduler, TimeSyncManager};
 use anyhow::Result;
+use tracing::{info, debug};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -148,6 +149,7 @@ impl Orchestrator {
         peers: &tokio::sync::RwLock<HashMap<String, PeerInfo>>,
         node_id: &str,
     ) -> Result<()> {
+        debug!("Received message from network: {:?}", msg);
         match msg {
             Message::Discovery {
                 node_id: peer_id,
@@ -168,7 +170,7 @@ impl Orchestrator {
                         state: NodeState::Idle,
                     },
                 );
-                println!("Discovered peer: {} (role: {:?})", peer_id, role);
+                info!("Discovered peer: {} (role: {:?})", peer_id, role);
             }
 
             Message::TimeSyncRequest {

@@ -13,3 +13,6 @@ chrono = "0.4"
 clap = { version = "4.5", features = ["derive"] }
 socket2 = "0.5"
 anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "time"] }
+libc = "0.2"

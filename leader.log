@@ -1,0 +1,40 @@
+[2m2026-01-02T10:36:09.504567Z[0m [32m INFO[0m [2mrecord_syncd[0m[2m:[0m Starting record-syncd
+[2m2026-01-02T10:36:09.504693Z[0m [32m INFO[0m [2mrecord_syncd[0m[2m:[0m Node ID: node-17102
+[2m2026-01-02T10:36:09.504777Z[0m [32m INFO[0m [2mrecord_syncd[0m[2m:[0m Role: Leader
+[2m2026-01-02T10:36:09.504858Z[0m [32m INFO[0m [2mrecord_syncd[0m[2m:[0m Interface: 192.168.50.2
+[2m2026-01-02T10:36:09.505639Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350169505364 }
+[2m2026-01-02T10:36:11.507232Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350171507049 }
+[2m2026-01-02T10:36:13.508420Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350173508294 }
+[2m2026-01-02T10:36:15.509188Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350175509051 }
+[2m2026-01-02T10:36:17.510261Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350177510100 }
+[2m2026-01-02T10:36:19.511851Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350179511729 }
+[2m2026-01-02T10:36:21.513529Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350181513406 }
+[2m2026-01-02T10:36:23.513980Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350183513850 }
+[2m2026-01-02T10:36:25.515168Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350185515018 }
+[2m2026-01-02T10:36:27.516536Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350187516412 }
+[2m2026-01-02T10:36:29.517729Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350189517593 }
+[2m2026-01-02T10:36:31.519237Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350191519101 }
+[2m2026-01-02T10:36:31.680207Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: RecordingCommand { command: Start, target_timestamp: 1767350193680045, role: Leader }
+[2m2026-01-02T10:36:33.519983Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350193519860 }
+[2m2026-01-02T10:36:35.521394Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350195521257 }
+[2m2026-01-02T10:36:37.524408Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350197522592 }
+[2m2026-01-02T10:36:39.527832Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350199527711 }
+[2m2026-01-02T10:36:41.529707Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350201529580 }
+[2m2026-01-02T10:36:43.531305Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350203531170 }
+[2m2026-01-02T10:36:45.532709Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350205532573 }
+[2m2026-01-02T10:36:47.534417Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350207534284 }
+[2m2026-01-02T10:36:49.535674Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350209535550 }
+[2m2026-01-02T10:36:51.539489Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350211538219 }
+[2m2026-01-02T10:36:53.542216Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350213542091 }
+[2m2026-01-02T10:36:55.545789Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350215544486 }
+[2m2026-01-02T10:36:57.548147Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350217548014 }
+[2m2026-01-02T10:36:58.612082Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: RecordingCommand { command: Stop, target_timestamp: 1767350219611916, role: Leader }
+[2m2026-01-02T10:36:59.549013Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350219548887 }
+[2m2026-01-02T10:37:01.550598Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350221550462 }
+[2m2026-01-02T10:37:03.552341Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350223552210 }
+[2m2026-01-02T10:37:05.553759Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350225553622 }
+[2m2026-01-02T10:37:07.555207Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350227555077 }
+[2m2026-01-02T10:37:09.556204Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350229556073 }
+[2m2026-01-02T10:37:11.560157Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350231558573 }
+[2m2026-01-02T10:37:13.562797Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350233562670 }
+[2m2026-01-02T10:37:15.564314Z[0m [34mDEBUG[0m [2mrecord_syncd::network[0m[2m:[0m Sending message to 192.168.50.255:9942: Discovery { node_id: "node-17102", role: Leader, timestamp: 1767350235564161 }

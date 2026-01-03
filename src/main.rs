@@ -4,6 +4,7 @@ mod sync;
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use tracing::info;
 use gstreamer::prelude::*;
 use gstreamer::{ElementFactory, Pipeline};
 use network::{NetworkManager, NodeRole, NodeState, RecordingCmd};
@@ -34,6 +35,10 @@ struct Args {
     /// Node ID (auto-generated if not provided)
     #[arg(long)]
     node_id: Option<String>,
+
+    /// Log file path (optional)
+    #[arg(long)]
+    log_file: Option<String>,
 }
 
 #[derive(Debug, Clone, clap::ValueEnum)]
@@ -217,20 +222,53 @@ impl RecordingPipeline {
     }
 }
 
+
+
+fn init_logging(log_file: Option<String>) -> Result<()> {
+    use tracing_subscriber::prelude::*;
+    
+
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_writer(std::io::stdout)
+        .compact();
+
+    if let Some(path) = log_file {
+        let file = std::fs::File::create(&path)
+            .context(format!("Failed to create log file {}", path))?;
+        let file_layer = tracing_subscriber::fmt::layer()
+            .with_writer(file)
+            .compact();
+        
+        tracing_subscriber::registry()
+            .with(fmt_layer)
+            .with(file_layer)
+            .init();
+    } else {
+        tracing_subscriber::registry()
+            .with(fmt_layer)
+            .init();
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
+    
+    // Initialize logging
+    init_logging(args.log_file.clone())?;
 
     // Generate node ID if not provided
     let node_id = args.node_id.unwrap_or_else(|| {
         format!("node-{}", std::process::id())
     });
 
-    println!("Starting record-syncd");
-    println!("Node ID: {}", node_id);
-    println!("Role: {:?}", args.role);
+    info!("Starting record-syncd");
+    info!("Node ID: {}", node_id);
+    info!("Role: {:?}", args.role);
     if let Some(interface) = args.interface {
-        println!("Interface: {}", interface);
+        info!("Interface: {}", interface);
     }
 
     let running = Arc::new(AtomicBool::new(true));
