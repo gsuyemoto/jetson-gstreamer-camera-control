@@ -10,7 +10,7 @@ use gstreamer::{ElementFactory, Pipeline};
 use network::{NetworkManager, NodeRole, NodeState, RecordingCmd};
 use orchestrator::{Orchestrator, RecordingEvent};
 use std::net::IpAddr;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Arc;
 use sync::TimeSyncManager;
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -40,6 +40,24 @@ struct Args {
     #[arg(long)]
     log_file: Option<String>,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum RecordingState {
+    Idle = 0,
+    Recording = 1,
+    Stopping = 2,
+}
+
+impl RecordingState {
+    fn from_u8(val: u8) -> Self {
+        match val {
+            1 => RecordingState::Recording,
+            2 => RecordingState::Stopping,
+            _ => RecordingState::Idle,
+        }
+    }
+}
+
 
 #[derive(Debug, Clone, clap::ValueEnum)]
 enum CliNodeRole {
@@ -144,27 +162,38 @@ impl RecordingPipeline {
     fn stop(&self) -> Result<()> {
         println!("Stopping recording...");
 
+        // Pause the pipeline first
+        self.pipeline.set_state(gstreamer::State::Paused)?;
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
         // Send EOS to properly finalize the file
         self.pipeline.send_event(gstreamer::event::Eos::new());
 
-        // Wait for EOS
+        // Wait for EOS with extended timeout (up to 30 seconds)
         let bus = self.pipeline.bus().context("Pipeline has no bus")?;
-        for msg in bus.iter_timed(gstreamer::ClockTime::from_seconds(5)) {
-            use gstreamer::MessageView;
-            match msg.view() {
-                MessageView::Eos(..) => {
-                    println!("EOS received");
-                    break;
+        let start = std::time::Instant::now();
+        let max_wait = std::time::Duration::from_secs(30);
+        
+        while start.elapsed() < max_wait {
+            if let Some(msg) = bus.timed_pop(gstreamer::ClockTime::from_mseconds(500)) {
+                use gstreamer::MessageView;
+                match msg.view() {
+                    MessageView::Eos(..) => {
+                        println!("EOS received");
+                        break;
+                    }
+                    MessageView::Error(err) => {
+                        eprintln!("Error during EOS: {:?}", err.error());
+                        break;
+                    }
+                    _ => (),
                 }
-                MessageView::Error(err) => {
-                    eprintln!("Error during EOS: {:?}", err.error());
-                    break;
-                }
-                _ => (),
             }
         }
 
+        // Set to NULL state to finalize
         self.pipeline.set_state(gstreamer::State::Null)?;
+        std::thread::sleep(std::time::Duration::from_millis(500));
         println!("Recording stopped");
 
         Ok(())
@@ -273,12 +302,14 @@ async fn main() -> Result<()> {
 
     let running = Arc::new(AtomicBool::new(true));
 
+    let recording_state = Arc::new(AtomicU8::new(0));
+
     // Set up Ctrl+C handler
     {
-        let running = running.clone();
+        let running_sigint = running.clone();
         ctrlc::set_handler(move || {
             println!("\nReceived Ctrl+C, stopping...");
-            running.store(false, Ordering::SeqCst);
+            running_sigint.store(false, Ordering::SeqCst);
         })?;
     }
 
@@ -319,6 +350,7 @@ async fn main() -> Result<()> {
     let leader_ui_handle = if matches!(args.role, CliNodeRole::Leader) {
         let orchestrator = orchestrator.clone();
         let running = running.clone();
+        let recording_state_ui = recording_state.clone();
         
         Some(tokio::spawn(async move {
             println!("\n=== Leader Commands ===");
@@ -376,8 +408,20 @@ async fn main() -> Result<()> {
                                 println!();
                             }
                             "quit" => {
-                                running.store(false, Ordering::SeqCst);
-                                break;
+                                let state = RecordingState::from_u8(recording_state_ui.load(Ordering::SeqCst));
+                                match state {
+                                    RecordingState::Stopping => {
+                                        println!("Video is still finalizing... Please wait.");
+                                        println!("The application will exit once the file is written.");
+                                    }
+                                    RecordingState::Recording => {
+                                        println!("Recording in progress. Please use 'stop' command first.");
+                                    }
+                                    RecordingState::Idle => {
+                                        running.store(false, Ordering::SeqCst);
+                                        break;
+                                    }
+                                }
                             }
                             _ => {
                                 println!("Unknown command: {}", parts[0]);
@@ -395,6 +439,8 @@ async fn main() -> Result<()> {
         None
     };
 
+    // Track recording state: 0=Idle, 1=Recording, 2=Stopping
+
     // Main event loop
     while running.load(Ordering::SeqCst) {
         tokio::select! {
@@ -402,6 +448,7 @@ async fn main() -> Result<()> {
                 match event {
                     RecordingEvent::Start => {
                         if recording_pipeline.is_none() {
+                            recording_state.store(1, Ordering::SeqCst); // Set to Recording
                             match RecordingPipeline::create(args.output.clone()) {
                                 Ok(pipeline) => {
                                     if let Err(e) = pipeline.start() {
@@ -424,9 +471,13 @@ async fn main() -> Result<()> {
                     }
                     RecordingEvent::Stop => {
                         if let Some(pipeline) = recording_pipeline.take() {
+                            recording_state.store(2, Ordering::SeqCst); // Set to Stopping
+                            info!("Stopping recording - video file is being finalized...");
                             if let Err(e) = pipeline.stop() {
                                 eprintln!("Failed to stop recording: {}", e);
                             }
+                            recording_state.store(0, Ordering::SeqCst); // Back to Idle
+                            info!("Recording stopped cleanly");
                             let _ = orchestrator.send_status(NodeState::Idle).await;
                         } else {
                             println!("Not currently recording");

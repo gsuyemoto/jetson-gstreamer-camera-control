@@ -72,13 +72,17 @@ impl Orchestrator {
     fn spawn_discovery_task(&self) -> tokio::task::JoinHandle<()> {
         let network = self.network.clone();
         let running = self.running.clone();
+        let role = network.role();
 
         tokio::spawn(async move {
-            while running.load(Ordering::SeqCst) {
-                if let Err(e) = network.send_discovery().await {
-                    eprintln!("Failed to send discovery: {}", e);
+            // Only leaders send discovery messages
+            if role == NodeRole::Leader {
+                while running.load(Ordering::SeqCst) {
+                    if let Err(e) = network.send_discovery().await {
+                        eprintln!("Failed to send discovery: {}", e);
+                    }
+                    sleep(Duration::from_secs(2)).await;
                 }
-                sleep(Duration::from_secs(2)).await;
             }
         })
     }

@@ -98,21 +98,18 @@ impl NetworkManager {
         socket.set_reuse_address(true)?;
         socket.set_broadcast(true)?;
 
-        // Bind to the specific interface if provided, otherwise bind to all interfaces
-        let bind_addr = match interface_ip {
-            Some(IpAddr::V4(ip)) => SocketAddr::new(IpAddr::V4(ip), DISCOVERY_PORT),
-            _ => SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), DISCOVERY_PORT),
-        };
+        // Always bind to 0.0.0.0 to receive broadcast messages on any interface
+        let bind_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), DISCOVERY_PORT);
         socket.bind(&bind_addr.into())?;
 
         socket.set_nonblocking(true)?;
         let tokio_socket: std::net::UdpSocket = socket.into();
         
-        // Set socket options to ensure broadcast works on the specific interface
+        // Set the outgoing broadcast interface if provided
         if let Some(IpAddr::V4(ip)) = interface_ip {
             use std::os::unix::io::AsRawFd;
             let raw_fd = tokio_socket.as_raw_fd();
-            // IP_MULTICAST_IF (for both broadcast and multicast) - set to our interface
+            // IP_MULTICAST_IF controls which interface sends broadcast/multicast packets
             unsafe {
                 let addr = libc::in_addr { s_addr: u32::from(ip).to_be() };
                 let res = libc::setsockopt(
