@@ -1,4 +1,5 @@
 **2026-01-02 v1**
+
 Changes Made to Fix Broadcast Communication
 
 1. Socket Configuration (network.rs):
@@ -14,6 +15,7 @@ Changes Made to Fix Broadcast Communication
 •  All logs can be captured with --log-file option   
 
 **2026-01-02 v2**
+
 Changes in stop() function:
 1. Pause pipeline first - Transitions through PAUSED state before sending EOS
 2. Send EOS event - Tells the pipeline to finalize
@@ -46,3 +48,31 @@ When user enters quit:
 •  If idle: Exits cleanly
 
 This ensures the video file is fully written before the app exits, preventing file corruption from premature shutdown.
+
+**2026-01-02 v3**
+
+Changes to Fix MP4 File Finalization
+
+1. Added faststart property to qtmux:
+•  Tells the muxer to write the moov atom at the beginning of the file
+•  Makes the file seekable and playable before the entire file is written
+
+2. Improved stop() function:
+•  Increased EOS timeout from 30s to 60s to allow more time for moov atom write
+•  Sends EOS first, then waits for the EOS message
+•  Then transitions through PAUSED→NULL states (proper GStreamer shutdown sequence)
+•  Better logging to track finalization progress
+•  Includes sleep delays to ensure proper state transitions
+
+3. Better state management:
+•  EOS is sent immediately (not after pausing)
+•  Wait loop checks for EOS completion before state transitions
+•  500ms final sleep ensures all buffers are flushed
+
+Test this by:
+1. Starting the app
+2. Sending a start command (via leader UI or network message)
+3. Letting it record for a few seconds
+4. Sending a stop command and wait for the logs to show "EOS received - file finalization complete"
+5. Then exit normally
+6. The video should now be playable without the moov atom error

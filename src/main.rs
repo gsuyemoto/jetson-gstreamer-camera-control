@@ -4,7 +4,7 @@ mod sync;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use tracing::info;
+use tracing::{info, warn};
 use gstreamer::prelude::*;
 use gstreamer::{ElementFactory, Pipeline};
 use network::{NetworkManager, NodeRole, NodeState, RecordingCmd};
@@ -117,11 +117,15 @@ impl RecordingPipeline {
             .field("width", 1920)
             .field("height", 1080)
             .field("format", "NV12")
-            .field("framerate", gstreamer::Fraction::new(30, 1))
+            .field("framerate", gstreamer::Fraction::new(60, 1))
             .build();
 
         capsfilter.set_property("caps", &caps);
         encoder.set_property("bitrate", 8000000u32);
+        
+        // Configure muxer to write moov atom at the beginning for better compatibility
+        muxer.set_property("faststart", true);
+        
         sink.set_property("location", &filename);
 
         // Add elements to pipeline
@@ -160,26 +164,25 @@ impl RecordingPipeline {
     }
 
     fn stop(&self) -> Result<()> {
-        println!("Stopping recording...");
+        info!("Stopping recording pipeline...");
 
-        // Pause the pipeline first
-        self.pipeline.set_state(gstreamer::State::Paused)?;
-        std::thread::sleep(std::time::Duration::from_millis(100));
-
-        // Send EOS to properly finalize the file
+        // Send EOS to flush all data through the pipeline
         self.pipeline.send_event(gstreamer::event::Eos::new());
 
-        // Wait for EOS with extended timeout (up to 30 seconds)
+        // Wait for EOS with extended timeout (up to 60 seconds)
         let bus = self.pipeline.bus().context("Pipeline has no bus")?;
         let start = std::time::Instant::now();
-        let max_wait = std::time::Duration::from_secs(30);
+        let max_wait = std::time::Duration::from_secs(60);
+        let mut eos_received = false;
         
+        info!("Waiting for EOS to finalize video file...");
         while start.elapsed() < max_wait {
-            if let Some(msg) = bus.timed_pop(gstreamer::ClockTime::from_mseconds(500)) {
+            if let Some(msg) = bus.timed_pop(gstreamer::ClockTime::from_mseconds(200)) {
                 use gstreamer::MessageView;
                 match msg.view() {
                     MessageView::Eos(..) => {
-                        println!("EOS received");
+                        info!("EOS received - file finalization complete");
+                        eos_received = true;
                         break;
                     }
                     MessageView::Error(err) => {
@@ -190,11 +193,21 @@ impl RecordingPipeline {
                 }
             }
         }
+        
+        if !eos_received {
+            warn!("EOS timeout - file may not be properly finalized");
+        }
 
-        // Set to NULL state to finalize
+        // Transition through states carefully
+        info!("Setting pipeline to PAUSED state...");
+        self.pipeline.set_state(gstreamer::State::Paused)?;
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        
+        info!("Setting pipeline to NULL state...");
         self.pipeline.set_state(gstreamer::State::Null)?;
         std::thread::sleep(std::time::Duration::from_millis(500));
-        println!("Recording stopped");
+        
+        info!("Recording stopped cleanly");
 
         Ok(())
     }
