@@ -76,3 +76,10 @@ Test this by:
 4. Sending a stop command and wait for the logs to show "EOS received - file finalization complete"
 5. Then exit normally
 6. The video should now be playable without the moov atom error
+
+**2026-01-02 v3**
+
+Fixed video is streaming upside down
+1. Need to use element 'nvvidconv' --> ElementFactory::make("nvvidconv")
+2. Set property 'flip-method' on nvvidconv element to 'vertical-flip'
+3. Important! must use 'set_property_from_str' or will error out with (expected: 'GstNvVideoFlipMethod', got: 'gchararray')

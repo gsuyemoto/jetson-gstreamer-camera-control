@@ -95,6 +95,10 @@ impl RecordingPipeline {
             .build()
             .context("Failed to create capsfilter")?;
 
+        let vidconv = ElementFactory::make("nvvidconv")
+            .build()
+            .context("Failed to create nvvidconv")?;
+
         let encoder = ElementFactory::make("nvv4l2h265enc")
             .build()
             .context("Failed to create nvv4l2h265enc")?;
@@ -121,6 +125,11 @@ impl RecordingPipeline {
             .build();
 
         capsfilter.set_property("caps", &caps);
+        
+        // Configure video converter to flip vertically on GPU
+        vidconv.set_property_from_str("flip-method", &"vertical-flip");
+        // vidconv.set_property("compute-hw", "gpu"); // GPU compute
+        
         encoder.set_property("bitrate", 8000000u32);
         
         // Configure muxer to write moov atom at the beginning for better compatibility
@@ -129,11 +138,12 @@ impl RecordingPipeline {
         sink.set_property("location", &filename);
 
         // Add elements to pipeline
-        pipeline.add_many([&source, &capsfilter, &encoder, &parser, &muxer, &sink])?;
+        pipeline.add_many([&source, &capsfilter, &vidconv, &encoder, &parser, &muxer, &sink])?;
 
         // Link elements
         source.link(&capsfilter)?;
-        capsfilter.link(&encoder)?;
+        capsfilter.link(&vidconv)?;
+        vidconv.link(&encoder)?;
         encoder.link(&parser)?;
         parser.link(&muxer)?;
         muxer.link(&sink)?;
